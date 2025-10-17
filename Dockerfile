@@ -2,9 +2,9 @@
 FROM maven:3.9.8-eclipse-temurin-21 AS builder
 WORKDIR /app
 COPY pom.xml .
-RUN --mount=type=cache,target=/root/.m2 mvn -q -e -DskipTests dependency:go-offline
+RUN mvn -q -e -DskipTests dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -DskipTests package
+RUN mvn -q -DskipTests package
 
 # ---------- runtime ----------
 FROM eclipse-temurin:21-jre
