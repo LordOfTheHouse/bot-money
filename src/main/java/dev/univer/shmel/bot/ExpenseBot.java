@@ -123,19 +123,22 @@ public class ExpenseBot {
             }
             switch (pending.action) {
                 case SETINITIAL -> {
-                    var parsed = ParseUtil.parseNameAmountDesc(text);
+                    // РАНЬШЕ: var parsed = ParseUtil.parseNameAmountDesc(text);
+                    var parsed = ParseUtil.parseInitialFlexible(text); // теперь допускаем "Имя: Сумма" и отсутствие знака
                     if (parsed == null) {
-                        send(chatId, "Не понял. Введите в формате: Имя +/-Сумма [Описание]\nНапример: Петров +20 Колготки");
+                        send(chatId, "Не понял. Введите в формате: Имя [+/-]Сумма [Описание]\n" +
+                                     "Также можно: «Имя: Сумма»\nНапример: Петров +20 или Петров: 300");
                         return;
                     }
                     if (personService.findExisting(chatId, parsed.name).isPresent()) {
-                        send(chatId, "Имя уже существует: " + parsed.name + ". Используйте /adjust " + parsed.name + " <+/−Сумма> [Описание] или /setbalance " + parsed.name + " <Сумма>.");
                         pendingByChat.remove(chatId);
+                        send(chatId, "Имя уже существует: " + parsed.name + ". Используйте /adjust " + parsed.name +
+                                     " <+/−Сумма> [Описание] или /setbalance " + parsed.name + " <Сумма>.");
                         return;
                     }
                     personService.setInitial(chatId, parsed.name, parsed.signedAmount);
-                    send(chatId, "Пользователь " + parsed.name + " задан, баланс установлен: " + fmtMoney(parsed.signedAmount));
                     pendingByChat.remove(chatId);
+                    send(chatId, "Пользователь " + parsed.name + " задан, баланс установлен: " + fmtMoney(parsed.signedAmount));
                     return;
                 }
                 case SETBALANCE -> {
@@ -378,8 +381,14 @@ public class ExpenseBot {
             return;
         }
 
-        if (SETINIT_EMPTY.matcher(text).matches()) { startPending(chatId, fromId, Action.SETINITIAL,
-                                                                  "Задайте баланс для нового пользователя.\nФормат: Имя +/-Сумма [Описание]\nНапример: Петров +20 Колготки"); return; }
+        if (SETINIT_EMPTY.matcher(text).matches()) {
+            startPending(chatId, fromId, Action.SETINITIAL,
+                         "Задайте баланс для нового пользователя.\n" +
+                         "Формат: Имя [+/-]Сумма [Описание]\n" +
+                         "Можно писать с двоеточием: «Имя: Сумма»\n" +
+                         "Например: Петров +20 или Петров: 300");
+            return;
+        }
         var sim = SETINIT.matcher(text);
         if (sim.matches()) {
             String name = sim.group(1).trim();
